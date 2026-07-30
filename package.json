@@ -1,0 +1,29 @@
+{
+  "name": "@maa/sdk-node",
+  "version": "0.1.0",
+  "description": "Server-side attribution SDK for MyAppAffiliate — affiliate attribution for SaaS backends",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myappaffiliate/myappaffiliate-node.git"
+  },
+  "homepage": "https://myappaffiliate.com",
+  "bugs": "https://github.com/myappaffiliate/myappaffiliate-node/issues",
+  "keywords": ["affiliate", "attribution", "referral", "saas", "stripe"],
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src", "README.md", "LICENSE"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
