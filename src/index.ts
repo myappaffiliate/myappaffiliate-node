@@ -1,5 +1,5 @@
 /**
- * @maa/sdk-node — server-side attribution SDK for MyAppAffiliate.
+ * @myappaffiliate/sdk-node — server-side attribution SDK for MyAppAffiliate.
  *
  * For SaaS backends: call trackSignup() from your signup handler and the user
  * is attributed in one shot (install + identify) using a deterministic
@@ -115,4 +115,17 @@ export class MyAppAffiliateNode {
       ...body,
     });
   }
+}
+
+/**
+ * Build a client. Equivalent to `new MyAppAffiliateNode(options)` — the factory
+ * is the form the docs use and the one that reads better at a module boundary:
+ *
+ *     const maa = createClient({ apiKey: process.env.MAA_SDK_KEY!, baseUrl });
+ *
+ * The client holds no per-request state, so one instance can be shared
+ * app-wide.
+ */
+export function createClient(options: NodeSdkOptions): MyAppAffiliateNode {
+  return new MyAppAffiliateNode(options);
 }

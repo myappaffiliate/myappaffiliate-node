@@ -1,4 +1,4 @@
-# @maa/sdk-node
+# @myappaffiliate/sdk-node
 
 Server-side attribution SDK for MyAppAffiliate — for SaaS backends (Node 18+,
 uses global `fetch`, zero dependencies). Silent-safe: methods return `null` on
@@ -7,15 +7,15 @@ any failure and never throw.
 ## Install
 
 ```bash
-npm install @maa/sdk-node
+npm install @myappaffiliate/sdk-node
 ```
 
 ## Usage
 
 ```ts
-import { MyAppAffiliateNode } from "@maa/sdk-node";
+import { createClient } from "@myappaffiliate/sdk-node";
 
-const maa = new MyAppAffiliateNode({
+const maa = createClient({
   apiKey: process.env.MAA_SDK_KEY!, // SDK-scoped API key from your dashboard
   baseUrl: "https://api.myappaffiliate.com",
 });
@@ -52,6 +52,7 @@ attributed affiliate — no extra SDK calls needed.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
+| `createClient({ apiKey, baseUrl })` | `MyAppAffiliateNode` | build a client (safe to share app-wide) |
 | `trackSignup({ userId, code?, claimToken? })` | `Promise<{ affiliateId } \| null>` | install + identify in one call |
 | `install({ deviceId, claimToken?, affiliateCode?, firstOpenAt? })` | `Promise<{ attributionId, affiliateId } \| null>` | raw POST /sdk/install |
 | `identify({ deviceId, customerUserId, identifiedAt? })` | `Promise<{ attributionId, customerUserId } \| null>` | raw POST /sdk/identify |

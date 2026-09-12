@@ -1,3 +1,4 @@
+# Managed by the monorepo — edit distribution/mirrors/ there, not here.
 name: CI
 
 on:
@@ -16,3 +17,7 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - run: npm test
+      - run: npm run build
+      # Nothing published may point at a file the tarball does not contain.
+      - name: Check the tarball
+        run: npx --yes @arethetypeswrong/cli@0.18.5 --pack .

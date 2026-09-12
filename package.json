@@ -1,28 +1,51 @@
 {
-  "name": "@maa/sdk-node",
+  "name": "@myappaffiliate/sdk-node",
   "version": "0.1.0",
-  "description": "Server-side attribution SDK for MyAppAffiliate — affiliate attribution for SaaS backends",
+  "description": "Server-side attribution SDK for MyAppAffiliate \u2014 affiliate attribution for SaaS backends",
   "license": "MIT",
+  "author": "MyAppAffiliate",
+  "homepage": "https://myappaffiliate.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/myappaffiliate/myappaffiliate-node.git"
   },
-  "homepage": "https://myappaffiliate.com",
   "bugs": "https://github.com/myappaffiliate/myappaffiliate-node/issues",
   "keywords": ["affiliate", "attribution", "referral", "saas", "stripe"],
+  "private": false,
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": ["dist", "README.md", "LICENSE"],
   "engines": {
     "node": ">=18"
   },
-  "exports": {
-    ".": "./src/index.ts"
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
-  "files": ["src", "README.md", "LICENSE"],
   "scripts": {
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
+    "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

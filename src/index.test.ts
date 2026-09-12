@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MyAppAffiliateNode } from "./index";
+import { MyAppAffiliateNode, createClient } from "./index";
 
 function okFetch(bodies: Array<Record<string, unknown>>) {
   let call = 0;
@@ -143,5 +143,21 @@ describe("raw passthroughs", () => {
       vi.fn(async () => Promise.reject(new Error("offline"))),
     );
     await expect(sdk().identify({ deviceId: "d", customerUserId: "u" })).resolves.toBeNull();
+  });
+});
+
+describe("createClient", () => {
+  it("builds the same client the constructor does", async () => {
+    const fetchMock = okFetch([
+      { attributionId: "attr_1", affiliateId: "aff_1" },
+      { attributionId: "attr_1", customerUserId: "u_1" },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClient({ apiKey: "k", baseUrl: "https://api.test" });
+    expect(client).toBeInstanceOf(MyAppAffiliateNode);
+    await expect(client.trackSignup({ userId: "u_1", code: "alice" })).resolves.toEqual({
+      affiliateId: "aff_1",
+    });
   });
 });

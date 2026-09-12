@@ -1,0 +1,39 @@
+# Managed by the monorepo — edit distribution/mirrors/ there, not here.
+name: Release
+
+# Releases run HERE, not in the monorepo: npm provenance attests to a public
+# source repo, and the monorepo is private.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for npm provenance.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - run: npm install
+      - run: npm test
+      - run: npm run build
+
+      - name: Tag must match the version in package.json
+        run: |
+          tagged="${GITHUB_REF_NAME#v}"
+          declared="$(node -p "require('./package.json').version")"
+          [ "$tagged" = "$declared" ] || {
+            echo "tag $GITHUB_REF_NAME does not match package.json $declared"; exit 1;
+          }
+
+      - name: Publish @myappaffiliate/sdk-node
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
