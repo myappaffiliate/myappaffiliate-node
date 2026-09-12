@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MyAppAffiliateNode, createClient } from "./index";
+import {
+  API_BASE_URL_ENV,
+  API_KEY_ENV,
+  DEFAULT_API_BASE_URL,
+  MyAppAffiliate,
+  createClient,
+  referralFrom,
+} from "./index";
 
 function okFetch(bodies: Array<Record<string, unknown>>) {
   let call = 0;
@@ -22,7 +29,7 @@ function sentUrl(fetchMock: ReturnType<typeof vi.fn>, call = 0): string {
   return args[0] as string;
 }
 
-const sdk = () => new MyAppAffiliateNode({ apiKey: "sdk_k", baseUrl: "https://api.test/" });
+const sdk = () => new MyAppAffiliate({ apiKey: "sdk_k", apiBaseUrl: "https://api.test/" });
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -146,18 +153,103 @@ describe("raw passthroughs", () => {
   });
 });
 
-describe("createClient", () => {
-  it("builds the same client the constructor does", async () => {
-    const fetchMock = okFetch([
-      { attributionId: "attr_1", affiliateId: "aff_1" },
-      { attributionId: "attr_1", customerUserId: "u_1" },
-    ]);
+describe("zero-config", () => {
+  it("createClient() reads the key and host from the environment", async () => {
+    vi.stubEnv(API_KEY_ENV, "sdk_from_env");
+    vi.stubEnv(API_BASE_URL_ENV, "https://staging.test/");
+    const fetchMock = okFetch([{ attributionId: "attr_1", customerUserId: "user_1" }]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const client = createClient({ apiKey: "k", baseUrl: "https://api.test" });
-    expect(client).toBeInstanceOf(MyAppAffiliateNode);
-    await expect(client.trackSignup({ userId: "u_1", code: "alice" })).resolves.toEqual({
-      affiliateId: "aff_1",
+    const client = createClient();
+    expect(client.configured).toBe(true);
+    await client.identify({ deviceId: "dev_1", customerUserId: "user_1" });
+
+    expect(sentUrl(fetchMock)).toBe("https://staging.test/sdk/identify");
+    const args = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect((args[1].headers as Record<string, string>).authorization).toBe("Bearer sdk_from_env");
+  });
+
+  it("falls back to the compiled-in production host", async () => {
+    vi.stubEnv(API_KEY_ENV, "sdk_k");
+    vi.stubEnv(API_BASE_URL_ENV, "");
+    const fetchMock = okFetch([{ attributionId: "attr_1", customerUserId: "user_1" }]);
+    vi.stubGlobal("fetch", fetchMock);
+    await createClient().identify({ deviceId: "dev_1", customerUserId: "user_1" });
+    expect(sentUrl(fetchMock)).toBe(`${DEFAULT_API_BASE_URL}/sdk/identify`);
+  });
+
+  it("takes a bare key string", () => {
+    expect(new MyAppAffiliate("sdk_k").configured).toBe(true);
+  });
+
+  it("reports not-configured and makes no call when no key exists anywhere", async () => {
+    vi.stubEnv(API_KEY_ENV, "");
+    const fetchMock = okFetch([{}]);
+    vi.stubGlobal("fetch", fetchMock);
+    const client = createClient();
+    expect(client.configured).toBe(false);
+    await expect(client.identify({ deviceId: "d", customerUserId: "u" })).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("referralFrom", () => {
+  it.each([
+    ["https://app.test/signup?via=alice", { code: "alice" }],
+    ["https://app.test/?ref=bob&utm_source=x", { code: "bob" }],
+    ["/signup?maa_code=carol", { code: "carol" }],
+    ["https://app.test/?ct=tok_1&via=alice", { claimToken: "tok_1" }],
+    ["https://app.test/?claim_token=tok_2", { claimToken: "tok_2" }],
+    ["https://app.test/pricing?via=dave#anchor", { code: "dave" }],
+    ["https://app.test/signup", {}],
+    ["", {}],
+    [null, {}],
+  ])("%s → %o", (input, expected) => {
+    expect(referralFrom(input)).toEqual(expected);
+  });
+});
+
+describe("trackSignup from a request URL", () => {
+  it("extracts the referral out of `from` so the caller parses nothing", async () => {
+    const fetchMock = okFetch([
+      { attributionId: "attr_1", affiliateId: "aff_1" },
+      { attributionId: "attr_1", customerUserId: "user_1" },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await sdk().trackSignup({
+      userId: "user_1",
+      from: "https://app.test/signup?via=alice&utm_source=x",
     });
+    expect(result).toEqual({ affiliateId: "aff_1" });
+    expect(sentBody(fetchMock, 0).affiliateCode).toBe("alice");
+  });
+
+  it("prefers a claim token inside `from` over a code", async () => {
+    const fetchMock = okFetch([
+      { attributionId: "attr_1", affiliateId: "aff_1" },
+      { attributionId: "attr_1", customerUserId: "user_1" },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    await sdk().trackSignup({ userId: "user_1", from: "/signup?ct=tok_1&via=alice" });
+    expect(sentBody(fetchMock, 0).claimToken).toBe("tok_1");
+  });
+
+  it("an explicit code wins over whatever `from` carries", async () => {
+    const fetchMock = okFetch([
+      { attributionId: "attr_1", affiliateId: "aff_1" },
+      { attributionId: "attr_1", customerUserId: "user_1" },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    await sdk().trackSignup({ userId: "user_1", code: "typed", from: "/signup?via=url" });
+    expect(sentBody(fetchMock, 0).affiliateCode).toBe("typed");
+  });
+
+  it("returns null without a network call when `from` carries no referral", async () => {
+    const fetchMock = okFetch([{}]);
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      sdk().trackSignup({ userId: "user_1", from: "https://app.test/signup" }),
+    ).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

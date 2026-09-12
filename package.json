@@ -1,6 +1,6 @@
 {
   "name": "@myappaffiliate/sdk-node",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Server-side attribution SDK for MyAppAffiliate \u2014 affiliate attribution for SaaS backends",
   "license": "MIT",
   "author": "MyAppAffiliate",
@@ -30,7 +30,7 @@
     "./package.json": "./package.json"
   },
   "sideEffects": false,
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE"],
   "engines": {
     "node": ">=18"
   },
@@ -45,6 +45,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
